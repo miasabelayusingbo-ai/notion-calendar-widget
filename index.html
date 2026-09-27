@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notion Date & Calendar Widget</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
+
+  :root {
+    --pink: #fdf0f3;
+    --brown: #735856;
+    --brown-dark: #6c504d;
+    --white: #fffafa;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--pink);
+    color: var(--brown);
+    font-family: "DM Sans", Arial, sans-serif;
+  }
+
+  .widget {
+    width: min(100%, 430px);
+    margin: 0 auto;
+    padding: 16px 18px 20px;
+    background: var(--pink);
+  }
+
+  .date-card {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 180px;
+    margin-bottom: 18px;
+  }
+
+  .date-part {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 14px;
+  }
+
+  .date-part:first-child {
+    border-right: 2px solid rgba(115,88,86,.10);
+  }
+
+  .number {
+    font-size: clamp(72px, 18vw, 105px);
+    line-height: .82;
+    font-weight: 500;
+    letter-spacing: -7px;
+  }
+
+  .label {
+    margin-top: 20px;
+    font-size: 12px;
+    line-height: 1;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .calendar {
+    border: 3px solid var(--brown-dark);
+    border-radius: 17px;
+    overflow: hidden;
+    background: rgba(255,250,250,.16);
+  }
+
+  .calendar-header {
+    height: 43px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 13px;
+    background: var(--brown-dark);
+    color: var(--white);
+  }
+
+  .month-title {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  button {
+    border: 0;
+    background: transparent;
+    color: var(--white);
+    cursor: pointer;
+    font-size: 20px;
+    line-height: 1;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+  }
+
+  button:hover { background: rgba(255,255,255,.12); }
+
+  .calendar-body {
+    padding: 12px 10px 14px;
+  }
+
+  .weekdays, .days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+  }
+
+  .weekdays {
+    margin-bottom: 8px;
+  }
+
+  .weekday {
+    font-size: 10px;
+    font-weight: 600;
+    opacity: .8;
+  }
+
+  .day {
+    position: relative;
+    height: 27px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .day.muted {
+    opacity: .18;
+  }
+
+  .day.today span {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    background: var(--brown-dark);
+    color: var(--white);
+  }
+
+  @media (max-width: 360px) {
+    .widget { padding: 12px; }
+    .date-card { height: 155px; }
+    .number { letter-spacing: -5px; }
+  }
+</style>
+</head>
+<body>
+<div class="widget">
+  <section class="date-card">
+    <div class="date-part">
+      <div class="number" id="hour">--</div>
+      <div class="label" id="ampm">--</div>
+    </div>
+    <div class="date-part">
+      <div class="number" id="minute">--</div>
+      <div class="label" id="weekday">--------</div>
+    </div>
+  </section>
+
+  <section class="calendar">
+    <div class="calendar-header">
+      <button id="prev" aria-label="Previous month">‹</button>
+      <div class="month-title" id="monthTitle"></div>
+      <button id="next" aria-label="Next month">›</button>
+    </div>
+    <div class="calendar-body">
+      <div class="weekdays" id="weekdays"></div>
+      <div class="days" id="days"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+  const monthNames = [
+    "January","February","March","April","May","June",
+    "July","August","September","October","November","December"
+  ];
+  const weekdayNames = [
+    "Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"
+  ];
+  const weekdayShort = ["M","T","W","T","F","S","S"];
+
+  let viewedDate = new Date();
+
+  function manilaNow() {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Manila",
+      year: "numeric", month: "numeric", day: "numeric",
+      hour: "numeric", minute: "numeric", hour12: true,
+      weekday: "long"
+    }).formatToParts(new Date());
+
+    const get = type => parts.find(p => p.type === type)?.value;
+    return {
+      year: Number(get("year")),
+      month: Number(get("month")) - 1,
+      day: Number(get("day")),
+      hour: Number(get("hour")),
+      minute: Number(get("minute")),
+      weekday: get("weekday"),
+      dayPeriod: get("dayPeriod")
+    };
+  }
+
+  function updateClock() {
+    const now = manilaNow();
+    document.getElementById("hour").textContent =
+      String(now.hour).padStart(2, "0");
+    document.getElementById("minute").textContent =
+      String(now.minute).padStart(2, "0");
+    document.getElementById("ampm").textContent = now.dayPeriod;
+    document.getElementById("weekday").textContent = now.weekday;
+  }
+
+  function renderWeekdays() {
+    document.getElementById("weekdays").innerHTML =
+      weekdayShort.map(d => `<div class="weekday">${d}</div>`).join("");
+  }
+
+  function renderCalendar() {
+    const year = viewedDate.getFullYear();
+    const month = viewedDate.getMonth();
+
+    document.getElementById("monthTitle").textContent =
+      `${monthNames[month]} ${year}`;
+
+    const first = new Date(year, month, 1);
+    const last = new Date(year, month + 1, 0);
+
+    // Monday-first calendar, matching the reference image.
+    let start = first.getDay();
+    start = (start + 6) % 7;
+
+    const daysInMonth = last.getDate();
+
+    const prevLast = new Date(year, month, 0).getDate();
+    const cells = [];
+
+    for (let i = start - 1; i >= 0; i--) {
+      cells.push({ n: prevLast - i, muted: true });
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      cells.push({ n: d, muted: false });
+    }
+
+    while (cells.length < 42) {
+      cells.push({ n: cells.length - start - daysInMonth + 1, muted: true });
+    }
+
+    const now = manilaNow();
+
+    document.getElementById("days").innerHTML = cells.map(cell => {
+      const isToday =
+        !cell.muted &&
+        cell.n === now.day &&
+        month === now.month &&
+        year === now.year;
+
+      return `<div class="day ${cell.muted ? "muted" : ""} ${isToday ? "today" : ""}">
+        <span>${cell.n}</span>
+      </div>`;
+    }).join("");
+  }
+
+  document.getElementById("prev").addEventListener("click", () => {
+    viewedDate = new Date(viewedDate.getFullYear(), viewedDate.getMonth() - 1, 1);
+    renderCalendar();
+  });
+
+  document.getElementById("next").addEventListener("click", () => {
+    viewedDate = new Date(viewedDate.getFullYear(), viewedDate.getMonth() + 1, 1);
+    renderCalendar();
+  });
+
+  renderWeekdays();
+  updateClock();
+  renderCalendar();
+
+  setInterval(() => {
+    updateClock();
+
+    const now = manilaNow();
+    if (
+      viewedDate.getFullYear() === now.year &&
+      viewedDate.getMonth() === now.month
+    ) {
+      renderCalendar();
+    }
+  }, 1000);
+</script>
+</body>
+</html>
